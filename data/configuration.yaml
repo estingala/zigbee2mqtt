@@ -1,20 +1,44 @@
-# Home Assistant integration (MQTT discovery)
-homeassistant: false
-
-# allow new devices to join
+devices:
+  - devices.yaml
+groups:
+  - groups.yaml
+homeassistant: true
 permit_join: true
-
-# MQTT settings
 mqtt:
-  # MQTT base topic for zigbee2mqtt MQTT messages
   base_topic: zigbee2mqtt
-  # MQTT server URL
-  server: 'mqtt://localhost'
-  # MQTT server authentication, uncomment if required:
-  # user: my_user
-  # password: my_password
-
-# Serial settings
+  server: mqtt://localhost:1883
 serial:
-  # Location of CC2531 USB sniffer
-  port: /dev/ttyACM0
+  port: /dev/tty.wchusbserial1430
+advanced:
+  log_level: debug
+  pan_id: 6755
+  channel: 25
+  network_key:
+    - 70
+    - 118
+    - 83
+    - 244
+    - 169
+    - 150
+    - 34
+    - 147
+    - 165
+    - 234
+    - 188
+    - 95
+    - 168
+    - 42
+    - 13
+    - 196
+  availability_blocklist: []
+  availability_passlist: []
+  legacy_api: true
+device_options:
+  legacy: false
+blocklist: []
+passlist: []
+queue: {}
+frontend:
+  port: 8020
+experimental: {}
+availability: true
