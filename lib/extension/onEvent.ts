@@ -9,7 +9,7 @@ import Extension from './extension';
 export default class OnEvent extends Extension {
     override async start(): Promise<void> {
         for (const device of this.zigbee.devicesIterator(utils.deviceNotCoordinator)) {
-            await this.callOnEvent(device, 'start', {});
+            this.callOnEvent(device, 'start', {}).catch(utils.noop);
         }
 
         this.eventBus.onDeviceMessage(this, (data) => this.callOnEvent(data.device, 'message', this.convertData(data)));
@@ -41,11 +41,13 @@ export default class OnEvent extends Extension {
     private async callOnEvent(device: Device, type: zhc.OnEventType, data: KeyValue): Promise<void> {
         if (device.options.disabled) return;
         const state = this.state.get(device);
-        await zhc.onEvent(type, data, device.zh);
+        const deviceExposesChanged = (): void => this.eventBus.emitExposesAndDevicesChanged(data.device);
+
+        await zhc.onEvent(type, data, device.zh, {deviceExposesChanged});
 
         if (device.definition?.onEvent) {
             const options: KeyValue = device.options;
-            await device.definition.onEvent(type, data, device.zh, options, state);
+            await device.definition.onEvent(type, data, device.zh, options, state, {deviceExposesChanged});
         }
     }
 }

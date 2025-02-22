@@ -1,9 +1,17 @@
-import assert from 'assert';
+import assert from 'node:assert';
 
 import * as zhc from 'zigbee-herdsman-converters';
+import {access, Numeric} from 'zigbee-herdsman-converters';
 import {CustomClusters} from 'zigbee-herdsman/dist/zspec/zcl/definition/tstype';
 
 import * as settings from '../util/settings';
+
+const LINKQUALITY = new Numeric('linkquality', access.STATE)
+    .withUnit('lqi')
+    .withDescription('Link quality (signal strength)')
+    .withValueMin(0)
+    .withValueMax(255)
+    .withCategory('diagnostic');
 
 export default class Device {
     public zh: zh.Device;
@@ -29,23 +37,28 @@ export default class Device {
     get customClusters(): CustomClusters {
         return this.zh.customClusters;
     }
+    get otaExtraMetas(): zhc.Ota.ExtraMetas {
+        return typeof this.definition?.ota === 'object' ? this.definition.ota : {};
+    }
 
     constructor(device: zh.Device) {
         this.zh = device;
     }
 
     exposes(): zhc.Expose[] {
+        const exposes: zhc.Expose[] = [];
         assert(this.definition, 'Cannot retreive exposes before definition is resolved');
-        /* istanbul ignore if */
         if (typeof this.definition.exposes == 'function') {
             const options: KeyValue = this.options;
-            return this.definition.exposes(this.zh, options);
+            exposes.push(...this.definition.exposes(this.zh, options));
         } else {
-            return this.definition.exposes;
+            exposes.push(...this.definition.exposes);
         }
+        exposes.push(LINKQUALITY);
+        return exposes;
     }
 
-    async resolveDefinition(ignoreCache = false): Promise<void> {
+    async resolveDefinition(ignoreCache: boolean = false): Promise<void> {
         if (!this.zh.interviewing && (!this.definition || this._definitionModelID !== this.zh.modelID || ignoreCache)) {
             this.definition = await zhc.findByDevice(this.zh, true);
             this._definitionModelID = this.zh.modelID;
@@ -78,7 +91,6 @@ export default class Device {
                 return undefined;
             }
         } else {
-            /* istanbul ignore next */
             if (key !== 'default') {
                 return undefined;
             }
@@ -101,7 +113,7 @@ export default class Device {
             }
         }
 
-        /* istanbul ignore next */
+        /* v8 ignore next */
         return epName === 'default' ? undefined : epName;
     }
 
@@ -117,14 +129,10 @@ export default class Device {
         return names;
     }
 
-    isIkeaTradfri(): boolean {
-        return this.zh.manufacturerID === 4476;
-    }
-
     isDevice(): this is Device {
         return true;
     }
-    /* istanbul ignore next */
+
     isGroup(): this is Group {
         return false;
     }
