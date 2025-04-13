@@ -2,12 +2,13 @@ devices:
   - devices.yaml
 groups:
   - groups.yaml
-homeassistant: true
-permit_join: true
+homeassistant:
+  enabled: true
 mqtt:
   base_topic: zigbee2mqtt
   server: mqtt://localhost:1883
 serial:
+  adapter: zstack
   port: /dev/tty.wchusbserial1430
 advanced:
   log_level: debug
@@ -30,15 +31,13 @@ advanced:
     - 42
     - 13
     - 196
-  availability_blocklist: []
-  availability_passlist: []
-  legacy_api: true
-device_options:
-  legacy: false
+device_options: {}
 blocklist: []
 passlist: []
 queue: {}
 frontend:
+  enabled: true
   port: 8020
-experimental: {}
-availability: true
+availability:
+  enabled: true
+version: 4
