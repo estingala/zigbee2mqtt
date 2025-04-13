@@ -2,12 +2,15 @@ import * as data from '../mocks/data';
 import {mockLogger} from '../mocks/logger';
 import {events as mockMQTTEvents, mockMQTTPublishAsync, mockMQTTSubscribeAsync, mockMQTTUnsubscribeAsync} from '../mocks/mqtt';
 import * as mockSleep from '../mocks/sleep';
-import {flushPromises} from '../mocks/utils';
+import {flushPromises, getZhcBaseDefinitions} from '../mocks/utils';
 import {devices, groups, events as mockZHEvents} from '../mocks/zigbeeHerdsman';
 
 import assert from 'node:assert';
 
 import stringify from 'json-stable-stringify-without-jsonify';
+
+import * as zhc from 'zigbee-herdsman-converters';
+import {KeyValueAny} from 'zigbee-herdsman-converters/lib/types';
 
 import {Controller} from '../../lib/controller';
 import HomeAssistant from '../../lib/extension/homeassistant';
@@ -23,11 +26,10 @@ describe('Extension: HomeAssistant', () => {
     const origin = {name: 'Zigbee2MQTT', sw: '', url: 'https://www.zigbee2mqtt.io'};
 
     const resetExtension = async (runTimers = true): Promise<void> => {
-        await controller.enableDisableExtension(false, 'HomeAssistant');
+        await controller.removeExtension(controller.getExtension('HomeAssistant')!);
         mocksClear.forEach((m) => m.mockClear());
-        await controller.enableDisableExtension(true, 'HomeAssistant');
-        // @ts-expect-error private
-        extension = controller.extensions.find((e) => e.constructor.name === 'HomeAssistant');
+        await controller.addExtension(new HomeAssistant(...controller.extensionArgs));
+        extension = controller.getExtension('HomeAssistant')! as HomeAssistant;
 
         if (runTimers) {
             await vi.runOnlyPendingTimersAsync();
@@ -46,7 +48,7 @@ describe('Extension: HomeAssistant', () => {
     };
 
     beforeAll(async () => {
-        const {getZigbee2MQTTVersion} = (await import('../../lib/util/utils')).default;
+        const {getZigbee2MQTTVersion} = await import('../../lib/util/utils.js');
         z2m_version = (await getZigbee2MQTTVersion()).version;
         version = `Zigbee2MQTT ${z2m_version}`;
         origin.sw = z2m_version;
@@ -62,8 +64,10 @@ describe('Extension: HomeAssistant', () => {
     });
 
     afterAll(async () => {
-        vi.useRealTimers();
         mockSleep.restore();
+        await controller?.stop();
+        await flushPromises();
+        vi.useRealTimers();
     });
 
     beforeEach(async () => {
@@ -79,7 +83,9 @@ describe('Extension: HomeAssistant', () => {
 
     it('Should not have duplicate type/object_ids in a mapping', async () => {
         const duplicated: string[] = [];
-        (await import('zigbee-herdsman-converters')).definitions.forEach((d) => {
+
+        for (const baseDefinition of await getZhcBaseDefinitions()) {
+            const d = zhc.prepareDefinition(baseDefinition);
             const exposes = typeof d.exposes == 'function' ? d.exposes(undefined, undefined) : d.exposes;
             const device = {
                 definition: d,
@@ -104,7 +110,7 @@ describe('Extension: HomeAssistant', () => {
                     cfgTypeObjectIds.push(id);
                 }
             });
-        });
+        }
 
         expect(duplicated).toHaveLength(0);
     });
@@ -153,6 +159,33 @@ describe('Extension: HomeAssistant', () => {
         };
 
         expect(mockMQTTPublishAsync).toHaveBeenCalledWith('homeassistant/light/1221051039810110150109113116116_9/light/config', stringify(payload), {
+            retain: true,
+            qos: 1,
+        });
+
+        payload = {
+            availability: [{topic: 'zigbee2mqtt/bridge/state', value_template: '{{ value_json.state }}'}],
+            brightness: true,
+            brightness_scale: 254,
+            command_topic: 'zigbee2mqtt/bulb_enddevice/set',
+            device: {
+                identifiers: ['zigbee2mqtt_0x0017880104e45553'],
+                manufacturer: 'Sengled',
+                model: 'Element classic (A19)',
+                model_id: 'E11-G13',
+                name: 'bulb_enddevice',
+                via_device: 'zigbee2mqtt_bridge_0x00124b00120144ae',
+            },
+            name: null,
+            object_id: 'bulb_enddevice',
+            origin: origin,
+            schema: 'json',
+            state_topic: 'zigbee2mqtt/bulb_enddevice',
+            supported_color_modes: ['brightness'],
+            unique_id: '0x0017880104e45553_light_zigbee2mqtt',
+        };
+
+        expect(mockMQTTPublishAsync).toHaveBeenCalledWith('homeassistant/light/0x0017880104e45553/light/config', stringify(payload), {
             retain: true,
             qos: 1,
         });
@@ -873,6 +906,42 @@ describe('Extension: HomeAssistant', () => {
         });
     });
 
+    it('Should discover devices with speed-controlled fan', async () => {
+        const payload = {
+            state_topic: 'zigbee2mqtt/fanbee',
+            state_value_template: '{{ value_json.state }}',
+            command_topic: 'zigbee2mqtt/fanbee/set/state',
+            percentage_state_topic: 'zigbee2mqtt/fanbee',
+            percentage_command_topic: 'zigbee2mqtt/fanbee/set/speed',
+            percentage_value_template: "{{ value_json.speed | default('None') }}",
+            percentage_command_template: "{{ value | default('') }}",
+            speed_range_min: 1,
+            speed_range_max: 254,
+            name: null,
+            object_id: 'fanbee',
+            unique_id: '0x00124b00cfcf3298_fan_zigbee2mqtt',
+            origin: origin,
+            device: {
+                identifiers: ['zigbee2mqtt_0x00124b00cfcf3298'],
+                name: 'fanbee',
+                model: 'Fan with valve',
+                model_id: 'FanBee',
+                manufacturer: 'Lorenz Brun',
+                via_device: 'zigbee2mqtt_bridge_0x00124b00120144ae',
+            },
+            availability: [
+                {
+                    topic: 'zigbee2mqtt/bridge/state',
+                    value_template: '{{ value_json.state }}',
+                },
+            ],
+        };
+
+        const idx = mockMQTTPublishAsync.mock.calls.findIndex((c) => c[0] === 'homeassistant/fan/0x00124b00cfcf3298/fan/config');
+        expect(idx).not.toBe(-1);
+        expect(JSON.parse(mockMQTTPublishAsync.mock.calls[idx][1])).toStrictEqual(payload);
+    });
+
     it('Should discover thermostat devices', async () => {
         const payload = {
             action_template:
@@ -1139,16 +1208,20 @@ describe('Extension: HomeAssistant', () => {
     it('Should throw error when starting with attributes output', async () => {
         settings.set(['advanced', 'output'], 'attribute');
         settings.set(['homeassistant'], {enabled: true});
-        expect(() => {
-            new Controller(vi.fn(), vi.fn());
-        }).toThrow('Home Assistant integration is not possible with attribute output!');
+        const controller = new Controller(vi.fn(), vi.fn());
+
+        await expect(async () => {
+            await controller.start();
+        }).rejects.toThrow('Home Assistant integration is not possible with attribute output!');
     });
 
     it('Should throw error when homeassistant.discovery_topic equals the mqtt.base_topic', async () => {
         settings.set(['mqtt', 'base_topic'], 'homeassistant');
-        expect(() => {
-            new Controller(vi.fn(), vi.fn());
-        }).toThrow("'homeassistant.discovery_topic' cannot not be equal to the 'mqtt.base_topic' (got 'homeassistant')");
+        const controller = new Controller(vi.fn(), vi.fn());
+
+        await expect(async () => {
+            await controller.start();
+        }).rejects.toThrow("'homeassistant.discovery_topic' cannot not be equal to the 'mqtt.base_topic' (got 'homeassistant')");
     });
 
     it('Should warn when starting with cache_state false', async () => {
@@ -1681,7 +1754,7 @@ describe('Extension: HomeAssistant', () => {
             state_topic: 'zigbee2mqtt/bulb',
             unique_id: '0x000b57fffec6a5b2_update_zigbee2mqtt',
             value_template:
-                "{\"latest_version\":\"{{ value_json['update']['latest_version'] }}\",\"installed_version\":\"{{ value_json['update']['installed_version'] }}\",\"update_percentage\":{{ value_json['update'].get('progress', 'null') }}}",
+                "{\"latest_version\":\"{{ value_json['update']['latest_version'] }}\",\"installed_version\":\"{{ value_json['update']['installed_version'] }}\",\"update_percentage\":{{ value_json['update'].get('progress', 'null') }},\"in_progress\":{{ (value_json['update']['state'] == 'updating')|lower }}}",
         };
 
         expect(mockMQTTPublishAsync).toHaveBeenCalledWith('homeassistant/update/0x000b57fffec6a5b2/update/config', stringify(payload), {
@@ -2256,7 +2329,7 @@ describe('Extension: HomeAssistant', () => {
         await vi.runOnlyPendingTimersAsync();
         await flushPromises();
 
-        let payload = {
+        let payload: KeyValueAny = {
             name: 'Chill scene',
             command_topic: 'zigbee2mqtt/bulb_color_2/set',
             payload_on: '{ "scene_recall": 1 }',
@@ -2620,5 +2693,29 @@ describe('Extension: HomeAssistant', () => {
         expect(mockMQTTPublishAsync.mock.calls[1][2]).toStrictEqual({qos: 0, retain: false});
         expect(mockMQTTPublishAsync.mock.calls[2][0]).toStrictEqual('homeassistant/device_automation/0x0017880104e45520/action_single/config');
         expect(mockMQTTPublishAsync.mock.calls[3][0]).toStrictEqual('zigbee2mqtt/button/action');
+    });
+
+    it('prevents mismatching setting/extension state', async () => {
+        settings.set(['homeassistant', 'enabled'], true);
+        await resetExtension();
+
+        await expect(async () => {
+            await controller.enableDisableExtension(false, 'HomeAssistant');
+        }).rejects.toThrow('Tried to disable HomeAssistant extension enabled in settings');
+
+        await expect(async () => {
+            await controller.enableDisableExtension(true, 'HomeAssistant');
+        }).rejects.toThrow('Extension with name HomeAssistant already present');
+
+        settings.set(['homeassistant', 'enabled'], false);
+
+        await expect(async () => {
+            await controller.enableDisableExtension(true, 'HomeAssistant');
+        }).rejects.toThrow('Tried to enable HomeAssistant extension disabled in settings');
+
+        settings.set(['homeassistant', 'enabled'], false);
+        await controller.enableDisableExtension(false, 'HomeAssistant');
+
+        await vi.waitFor(() => controller.getExtension('HomeAssistant') === undefined);
     });
 });

@@ -219,7 +219,7 @@
                 },
                 "adapter": {
                     "type": ["string"],
-                    "enum": ["deconz", "zstack", "zigate", "ezsp", "ember", "zboss"],
+                    "enum": ["deconz", "zstack", "zigate", "ezsp", "ember", "zboss", "zoh"],
                     "title": "Adapter",
                     "requiresRestart": true,
                     "description": "Adapter type, not needed unless you are experiencing problems"
@@ -410,6 +410,14 @@
                     "description": "Base URL for the frontend. If hosted under a subpath, e.g. 'http://localhost:8080/z2m', set this to '/z2m'",
                     "default": "/",
                     "requiresRestart": true
+                },
+                "notification_filter": {
+                    "title": "Notification Filter",
+                    "description": "Hide frontend notifications matching specified regex strings. Example: 'z2m: Failed to ping.*'",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 }
             },
             "required": []
@@ -524,6 +532,14 @@
                     "description": "Do not log these namespaces (regex-based) for debug level",
                     "default": "",
                     "examples": ["^zhc:legacy:fz:(tuya|moes)", "^zhc:legacy:fz:(tuya|moes)|^zh:ember:uart:|^zh:controller"]
+                },
+                "log_directories_to_keep": {
+                    "type": "number",
+                    "title": "Number of past log folders to keep",
+                    "description": "Number of log directories to keep before deleting the oldest one",
+                    "default": 10,
+                    "minimum": 5,
+                    "maximum": 1000
                 },
                 "log_syslog": {
                     "requiresRestart": true,

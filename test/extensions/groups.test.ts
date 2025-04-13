@@ -6,7 +6,7 @@ import {devices, groups, events as mockZHEvents, resetGroupMembers, returnDevice
 
 import stringify from 'json-stable-stringify-without-jsonify';
 
-import {toZigbee as zhcToZigbee} from 'zigbee-herdsman-converters';
+import * as zhcGlobalStore from 'zigbee-herdsman-converters/lib/store';
 
 import {Controller} from '../../lib/controller';
 import * as settings from '../../lib/util/settings';
@@ -33,6 +33,8 @@ describe('Extension: Groups', () => {
     });
 
     afterAll(async () => {
+        await controller?.stop();
+        await flushPromises();
         vi.useRealTimers();
     });
 
@@ -42,7 +44,7 @@ describe('Extension: Groups', () => {
         settings.reRead();
         mockMQTTPublishAsync.mockClear();
         groups.gledopto_group.command.mockClear();
-        zhcToZigbee.__clearStore__();
+        zhcGlobalStore.clear();
         // @ts-expect-error private
         controller.state.state = {};
     });
