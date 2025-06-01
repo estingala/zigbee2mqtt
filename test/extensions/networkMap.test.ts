@@ -247,7 +247,7 @@ describe("Extension: NetworkMap", () => {
                                 description: "Hue Go",
                                 model: "7146060PH",
                                 supports:
-                                    "light (state, brightness, color_temp, color_temp_startup, color_xy, color_hs), power_on_behavior, effect, linkquality",
+                                    "light (state, brightness, color_temp, color_temp_startup, color_xy, color_hs, level_config), power_on_behavior, color_options, effect, linkquality",
                                 vendor: "Philips",
                             },
                             failed: [],
@@ -473,7 +473,7 @@ describe("Extension: NetworkMap", () => {
         expect(mockMQTTPublishAsync).toHaveBeenCalledWith(
             "zigbee2mqtt/bridge/response/networkmap",
             stringify({data: {}, status: "error", error: "Type 'not_existing' not supported, allowed are: raw,graphviz,plantuml"}),
-            {retain: false, qos: 0},
+            {},
         );
     });
 
@@ -554,7 +554,7 @@ describe("Extension: NetworkMap", () => {
                                 description: "Hue Go",
                                 model: "7146060PH",
                                 supports:
-                                    "light (state, brightness, color_temp, color_temp_startup, color_xy, color_hs), power_on_behavior, effect, linkquality",
+                                    "light (state, brightness, color_temp, color_temp_startup, color_xy, color_hs, level_config), power_on_behavior, color_options, effect, linkquality",
                                 vendor: "Philips",
                             },
                             failed: [],
@@ -711,7 +711,7 @@ describe("Extension: NetworkMap", () => {
                                 description: "Hue Go",
                                 model: "7146060PH",
                                 supports:
-                                    "light (state, brightness, color_temp, color_temp_startup, color_xy, color_hs), power_on_behavior, effect, linkquality",
+                                    "light (state, brightness, color_temp, color_temp_startup, color_xy, color_hs, level_config), power_on_behavior, color_options, effect, linkquality",
                                 vendor: "Philips",
                             },
                             failed: [],
