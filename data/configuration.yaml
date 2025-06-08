@@ -9,9 +9,9 @@ mqtt:
   server: mqtt://localhost:1883
 serial:
   adapter: zstack
-  port: /dev/tty.wchusbserial1430
+  port: /dev/tty.wchusbserial2330
 advanced:
-  log_level: debug
+  log_level: error
   pan_id: 6755
   channel: 25
   network_key:
@@ -38,6 +38,8 @@ queue: {}
 frontend:
   enabled: true
   port: 8020
+  notification_filter:
+    - 'z2m: No converter*'
 availability:
   enabled: true
 version: 4
