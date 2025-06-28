@@ -1,25 +1,22 @@
+// biome-ignore assist/source/organizeImports: import mocks first
 import * as data from "../mocks/data";
 import {mockLogger} from "../mocks/logger";
 import {events as mockMQTTEvents, mockMQTTPublishAsync, mockMQTTSubscribeAsync, mockMQTTUnsubscribeAsync} from "../mocks/mqtt";
 import * as mockSleep from "../mocks/sleep";
 import {flushPromises, getZhcBaseDefinitions} from "../mocks/utils";
+import type {Device as ZhDevice} from "../mocks/zigbeeHerdsman";
 import {devices, groups, events as mockZHEvents} from "../mocks/zigbeeHerdsman";
 
+import assert from "node:assert";
+import stringify from "json-stable-stringify-without-jsonify";
 import type {MockInstance} from "vitest";
+import * as zhc from "zigbee-herdsman-converters";
+import type {KeyValueAny} from "zigbee-herdsman-converters/lib/types";
+import {Controller} from "../../lib/controller";
+import HomeAssistant from "../../lib/extension/homeassistant";
 
 import type Device from "../../lib/model/device";
 import type Group from "../../lib/model/group";
-import type {Device as ZhDevice} from "../mocks/zigbeeHerdsman";
-
-import assert from "node:assert";
-
-import stringify from "json-stable-stringify-without-jsonify";
-
-import * as zhc from "zigbee-herdsman-converters";
-import type {KeyValueAny} from "zigbee-herdsman-converters/lib/types";
-
-import {Controller} from "../../lib/controller";
-import HomeAssistant from "../../lib/extension/homeassistant";
 import * as settings from "../../lib/util/settings";
 
 const mocksClear = [mockMQTTPublishAsync, mockLogger.debug, mockLogger.warning, mockLogger.error];
@@ -921,7 +918,7 @@ describe("Extension: HomeAssistant", () => {
         });
     });
 
-    it("Should discover devices with speed-controlled fan", async () => {
+    it("Should discover devices with speed-controlled fan", () => {
         const payload = {
             state_topic: "zigbee2mqtt/fanbee",
             state_value_template: "{{ value_json.state }}",
@@ -1341,7 +1338,6 @@ describe("Extension: HomeAssistant", () => {
                 linkquality: null,
                 state: null,
                 power_on_behavior: null,
-                color_options: null,
                 update: {state: null, installed_version: -1, latest_version: -1},
             }),
             {retain: false, qos: 0},
@@ -1364,7 +1360,6 @@ describe("Extension: HomeAssistant", () => {
                 effect: null,
                 linkquality: null,
                 state: null,
-                color_options: null,
                 power_on_behavior: null,
                 update: {state: null, installed_version: -1, latest_version: -1},
             }),
@@ -1387,7 +1382,6 @@ describe("Extension: HomeAssistant", () => {
                 effect: null,
                 state: "ON",
                 power_on_behavior: null,
-                color_options: null,
                 update: {state: null, installed_version: -1, latest_version: -1},
             }),
             {retain: false, qos: 0},
@@ -1567,7 +1561,8 @@ describe("Extension: HomeAssistant", () => {
         await flushPromises();
         await vi.runOnlyPendingTimersAsync();
         await flushPromises();
-        expect(mockMQTTPublishAsync).toHaveBeenCalledTimes(0);
+        expect(mockMQTTPublishAsync).toHaveBeenCalledTimes(1);
+        expect(mockMQTTPublishAsync).toHaveBeenCalledWith("zigbee2mqtt/bridge/health", expect.any(String), expect.any(Object));
     });
 
     it("Shouldnt send all status when home assistant comes online with different topic", async () => {
@@ -1580,7 +1575,8 @@ describe("Extension: HomeAssistant", () => {
         await flushPromises();
         await vi.runOnlyPendingTimersAsync();
         await flushPromises();
-        expect(mockMQTTPublishAsync).toHaveBeenCalledTimes(0);
+        expect(mockMQTTPublishAsync).toHaveBeenCalledTimes(1);
+        expect(mockMQTTPublishAsync).toHaveBeenCalledWith("zigbee2mqtt/bridge/health", expect.any(String), expect.any(Object));
     });
 
     it("Should discover devices with availability", async () => {
@@ -2459,7 +2455,8 @@ describe("Extension: HomeAssistant", () => {
             stringify(payload),
             {retain: true, qos: 1},
         );
-        expect(mockMQTTPublishAsync).toHaveBeenCalledTimes(6);
+        expect(mockMQTTPublishAsync).toHaveBeenCalledTimes(7);
+        expect(mockMQTTPublishAsync).toHaveBeenCalledWith("zigbee2mqtt/bridge/health", expect.any(String), expect.any(Object));
     });
 
     it("Should not clear bridge entities unnecessarily", async () => {

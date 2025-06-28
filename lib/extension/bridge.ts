@@ -1,21 +1,16 @@
-import type winston from "winston";
-
-import type Group from "../model/group";
-import type {Zigbee2MQTTAPI, Zigbee2MQTTDevice, Zigbee2MQTTResponse, Zigbee2MQTTResponseEndpoints} from "../types/api";
-
 import fs from "node:fs";
-
 import bind from "bind-decorator";
 import stringify from "json-stable-stringify-without-jsonify";
 import JSZip from "jszip";
 import objectAssignDeep from "object-assign-deep";
+import type winston from "winston";
 import Transport from "winston-transport";
-
 import {Zcl} from "zigbee-herdsman";
-import * as zhc from "zigbee-herdsman-converters";
 import {InterviewState} from "zigbee-herdsman/dist/controller/model/device";
-
+import * as zhc from "zigbee-herdsman-converters";
 import Device from "../model/device";
+import type Group from "../model/group";
+import type {Zigbee2MQTTAPI, Zigbee2MQTTDevice, Zigbee2MQTTResponse, Zigbee2MQTTResponseEndpoints} from "../types/api";
 import data from "../util/data";
 import logger from "../util/logger";
 import * as settings from "../util/settings";
@@ -25,6 +20,8 @@ import Extension from "./extension";
 const REQUEST_REGEX = new RegExp(`${settings.get().mqtt.base_topic}/bridge/request/(.*)`);
 
 export default class Bridge extends Extension {
+    // set on `start`
+    #osInfo!: Zigbee2MQTTAPI["bridge/info"]["os"];
     private zigbee2mqttVersion!: {commitHash?: string; version: string};
     private zigbeeHerdsmanVersion!: {version: string};
     private zigbeeHerdsmanConvertersVersion!: {version: string};
@@ -92,6 +89,15 @@ export default class Bridge extends Extension {
 
         logger.addTransport(this.logTransport);
 
+        const os = await import("node:os");
+        const process = await import("node:process");
+        const logicalCpuCores = os.cpus();
+        this.#osInfo = {
+            version: `${os.version()} - ${os.release()} - ${os.arch()}`,
+            node_version: process.version,
+            cpus: `${[...new Set(logicalCpuCores.map((cpu) => cpu.model))].join(" | ")} (x${logicalCpuCores.length})`,
+            memory_mb: Math.round(os.totalmem() / 1024 / 1024),
+        };
         this.zigbee2mqttVersion = await utils.getZigbee2MQTTVersion();
         this.zigbeeHerdsmanVersion = await utils.getDependencyVersion("zigbee-herdsman");
         this.zigbeeHerdsmanConvertersVersion = await utils.getDependencyVersion("zigbee-herdsman-converters");
@@ -691,6 +697,8 @@ export default class Bridge extends Extension {
 
         const networkParams = await this.zigbee.getNetworkParameters();
         const payload: Zigbee2MQTTAPI["bridge/info"] = {
+            os: this.#osInfo,
+            mqtt: this.mqtt.info,
             version: this.zigbee2mqttVersion.version,
             commit: this.zigbee2mqttVersion.commitHash,
             zigbee_herdsman_converters: this.zigbeeHerdsmanConvertersVersion,
@@ -824,8 +832,8 @@ export default class Bridge extends Extension {
 
         if (icon) {
             /* v8 ignore next */
-            icon = icon.replace("${zigbeeModel}", utils.sanitizeImageParameter(device.zh.modelID ?? ""));
-            icon = icon.replace("${model}", utils.sanitizeImageParameter(device.definition.model));
+            icon = icon.replace("$zigbeeModel", utils.sanitizeImageParameter(device.zh.modelID ?? ""));
+            icon = icon.replace("$model", utils.sanitizeImageParameter(device.definition.model));
         }
 
         const payload: Zigbee2MQTTDevice["definition"] = {

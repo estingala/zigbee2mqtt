@@ -1,3 +1,4 @@
+// biome-ignore assist/source/organizeImports: import mocks first
 import * as data from "../mocks/data";
 import {mockLogger} from "../mocks/logger";
 import {events as mockMQTTEvents, mockMQTTPublishAsync} from "../mocks/mqtt";
@@ -7,9 +8,7 @@ import {devices, events as mockZHEvents, returnDevices} from "../mocks/zigbeeHer
 
 import fs from "node:fs";
 import path from "node:path";
-
 import stringify from "json-stable-stringify-without-jsonify";
-
 import {Controller} from "../../lib/controller";
 import * as settings from "../../lib/util/settings";
 
@@ -247,7 +246,7 @@ describe("Extension: NetworkMap", () => {
                                 description: "Hue Go",
                                 model: "7146060PH",
                                 supports:
-                                    "light (state, brightness, color_temp, color_temp_startup, color_xy, color_hs, level_config), power_on_behavior, color_options, effect, linkquality",
+                                    "light (state, brightness, color_temp, color_temp_startup, color_xy, color_hs), power_on_behavior, effect, linkquality",
                                 vendor: "Philips",
                             },
                             failed: [],
@@ -554,7 +553,7 @@ describe("Extension: NetworkMap", () => {
                                 description: "Hue Go",
                                 model: "7146060PH",
                                 supports:
-                                    "light (state, brightness, color_temp, color_temp_startup, color_xy, color_hs, level_config), power_on_behavior, color_options, effect, linkquality",
+                                    "light (state, brightness, color_temp, color_temp_startup, color_xy, color_hs), power_on_behavior, effect, linkquality",
                                 vendor: "Philips",
                             },
                             failed: [],
@@ -711,7 +710,7 @@ describe("Extension: NetworkMap", () => {
                                 description: "Hue Go",
                                 model: "7146060PH",
                                 supports:
-                                    "light (state, brightness, color_temp, color_temp_startup, color_xy, color_hs, level_config), power_on_behavior, color_options, effect, linkquality",
+                                    "light (state, brightness, color_temp, color_temp_startup, color_xy, color_hs), power_on_behavior, effect, linkquality",
                                 vendor: "Philips",
                             },
                             failed: [],

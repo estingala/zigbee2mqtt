@@ -78,7 +78,7 @@
                         },
                         "backoff": {
                             "type": "boolean",
-                            "title": "Enabled",
+                            "title": "Backoff",
                             "description": "Enable timeout backoff on failed availability pings (x1.5, x3, x6, x12...)",
                             "default": true
                         },
@@ -545,7 +545,7 @@
                     "title": "Log Namespaced Levels",
                     "description": "Set individual log levels for certain namespaces",
                     "default": {},
-                    "examples": [{ "z2m:mqtt": "warning" }, { "zh:ember:uart:ash": "info" }]
+                    "examples": [{"z2m:mqtt": "warning"}, {"zh:ember:uart:ash": "info"}]
                 },
                 "log_debug_to_mqtt_frontend": {
                     "type": "boolean",
@@ -770,6 +770,27 @@
                     "description": "Examples when 'state' of a device is published json: topic: 'zigbee2mqtt/my_bulb' payload '{\"state\": \"ON\"}' attribute: topic 'zigbee2mqtt/my_bulb/state' payload 'ON' attribute_and_json: both json and attribute (see above)"
                 }
             }
+        },
+        "health": {
+            "title": "Health",
+            "description": "Periodically check the health of Zigbee2MQTT",
+            "type": "object",
+            "properties": {
+                "interval": {
+                    "type": "number",
+                    "title": "Interval",
+                    "description": "Interval between checks in minutes",
+                    "default": 10,
+                    "requiresRestart": true
+                },
+                "reset_on_check": {
+                    "type": "boolean",
+                    "title": "Reset on check",
+                    "description": "If true, will reset stats every time the health check is executed (only applicable to stats that can be reset).",
+                    "default": false
+                }
+            },
+            "required": []
         }
     },
     "required": ["mqtt"],

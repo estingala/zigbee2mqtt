@@ -1,7 +1,6 @@
-import type {Zigbee2MQTTAPI, Zigbee2MQTTNetworkMap} from "../types/api";
-
 import bind from "bind-decorator";
 import stringify from "json-stable-stringify-without-jsonify";
+import type {Zigbee2MQTTAPI, Zigbee2MQTTNetworkMap} from "../types/api";
 
 import logger from "../util/logger";
 import * as settings from "../util/settings";
@@ -268,8 +267,7 @@ export default class NetworkMap extends Extension {
                 networkAddress: device.zh.networkAddress,
                 manufacturerName: device.zh.manufacturerName,
                 modelID: device.zh.modelID,
-                // biome-ignore lint/style/noNonNullAssertion: TODO: biome migration: wrong typing? will be undefined if type=EndDevice?
-                failed: failed.get(device)!,
+                failed: failed.get(device),
                 lastSeen: device.zh.lastSeen,
                 definition,
             });

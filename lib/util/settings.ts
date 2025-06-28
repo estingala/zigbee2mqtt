@@ -1,6 +1,5 @@
-import type {ValidateFunction} from "ajv";
-
 import path from "node:path";
+import type {ValidateFunction} from "ajv";
 
 import Ajv from "ajv";
 import objectAssignDeep from "object-assign-deep";
@@ -112,6 +111,10 @@ export const defaults = {
         network_key: [1, 3, 5, 7, 9, 11, 13, 15, 0, 2, 4, 6, 8, 10, 12, 13],
         timestamp_format: "YYYY-MM-DD HH:mm:ss",
         output: "json",
+    },
+    health: {
+        interval: 10,
+        reset_on_check: false,
     },
 } satisfies RecursivePartial<Settings>;
 
@@ -596,7 +599,7 @@ export function addGroup(name: string, id?: string): GroupOptions {
         settings.groups = {};
     }
 
-    if (id == null) {
+    if (id == null || (typeof id === "string" && id.trim() === "")) {
         // look for free ID
         id = "1";
 

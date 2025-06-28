@@ -1,21 +1,18 @@
-import type Extension from "./extension/extension";
-import type {Zigbee2MQTTAPI} from "./types/api";
-
 import bind from "bind-decorator";
 import stringify from "json-stable-stringify-without-jsonify";
-
 import {setLogger as zhSetLogger} from "zigbee-herdsman";
 import {setLogger as zhcSetLogger} from "zigbee-herdsman-converters";
-
 import EventBus from "./eventBus";
 // Extensions
 import ExtensionAvailability from "./extension/availability";
 import ExtensionBind from "./extension/bind";
 import ExtensionBridge from "./extension/bridge";
 import ExtensionConfigure from "./extension/configure";
+import type Extension from "./extension/extension";
 import ExtensionExternalConverters from "./extension/externalConverters";
 import ExtensionExternalExtensions from "./extension/externalExtensions";
 import ExtensionGroups from "./extension/groups";
+import ExtensionHealth from "./extension/health";
 import ExtensionNetworkMap from "./extension/networkMap";
 import ExtensionOnEvent from "./extension/onEvent";
 import ExtensionOTAUpdate from "./extension/otaUpdate";
@@ -23,6 +20,7 @@ import ExtensionPublish from "./extension/publish";
 import ExtensionReceive from "./extension/receive";
 import Mqtt, {type MqttPublishOptions} from "./mqtt";
 import State from "./state";
+import type {Zigbee2MQTTAPI} from "./types/api";
 import logger from "./util/logger";
 import {initSdNotify} from "./util/sd-notify";
 import * as settings from "./util/settings";
@@ -76,6 +74,7 @@ export class Controller {
             new ExtensionOTAUpdate(...this.extensionArgs),
             new ExtensionExternalExtensions(...this.extensionArgs),
             new ExtensionAvailability(...this.extensionArgs),
+            new ExtensionHealth(...this.extensionArgs),
         ]);
     }
 

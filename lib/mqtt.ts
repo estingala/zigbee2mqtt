@@ -1,11 +1,8 @@
-import type {IClientOptions, IClientPublishOptions, MqttClient} from "mqtt";
-
-import type {Zigbee2MQTTAPI} from "./types/api";
-
 import fs from "node:fs";
-
 import bind from "bind-decorator";
+import type {IClientOptions, IClientPublishOptions, MqttClient} from "mqtt";
 import {connectAsync} from "mqtt";
+import type {Zigbee2MQTTAPI} from "./types/api";
 
 import logger from "./util/logger";
 import * as settings from "./util/settings";
@@ -29,6 +26,20 @@ export default class Mqtt {
     private republishRetainedTimer?: NodeJS.Timeout;
     private defaultPublishOptions: MqttPublishOptions;
     public retainedMessages: {[s: string]: {topic: string; payload: string; options: MqttPublishOptions}} = {};
+
+    get info() {
+        return {
+            version: this.client.options.protocolVersion,
+            server: `${this.client.options.protocol}://${this.client.options.host}:${this.client.options.port}`,
+        };
+    }
+
+    get stats() {
+        return {
+            connected: this.isConnected(),
+            queued: this.client.queue.length,
+        };
+    }
 
     constructor(eventBus: EventBus) {
         this.eventBus = eventBus;

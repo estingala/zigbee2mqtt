@@ -1,3 +1,4 @@
+// biome-ignore assist/source/organizeImports: import mocks first
 import * as data from "../mocks/data";
 import {mockJSZipFile, mockJSZipGenerateAsync} from "../mocks/jszip";
 import {mockLogger} from "../mocks/logger";
@@ -5,14 +6,11 @@ import {events as mockMQTTEvents, mockMQTTPublishAsync} from "../mocks/mqtt";
 import {flushPromises} from "../mocks/utils";
 import {CUSTOM_CLUSTERS, devices, groups, mockController as mockZHController, events as mockZHEvents, returnDevices} from "../mocks/zigbeeHerdsman";
 
-import type {Mock} from "vitest";
-
 import assert from "node:assert";
 import fs from "node:fs";
 import path from "node:path";
-
 import stringify from "json-stable-stringify-without-jsonify";
-
+import type {Mock} from "vitest";
 import {Controller} from "../../lib/controller";
 import Bridge from "../../lib/extension/bridge";
 import * as settings from "../../lib/util/settings";
@@ -40,6 +38,19 @@ const mocksClear = [
 ];
 
 const deviceIconsDir = path.join(data.mockDir, "device_icons");
+
+vi.mock("node:os", async (importOriginal) => ({
+    ...(await importOriginal()),
+    version: vi.fn(() => "Linux"),
+    release: vi.fn(() => "0.0.1"),
+    arch: vi.fn(() => "x64"),
+    cpus: vi.fn(() => [{model: "Intel Core i7-9999"}]),
+    totalmem: vi.fn(() => 10485760),
+}));
+vi.mock("node:process", async (importOriginal) => ({
+    ...(await importOriginal()),
+    version: "v1.2.3",
+}));
 
 describe("Extension: Bridge", () => {
     let controller: Controller;
@@ -94,12 +105,16 @@ describe("Extension: Bridge", () => {
         const zhVersion = await utils.getDependencyVersion("zigbee-herdsman");
         const zhcVersion = await utils.getDependencyVersion("zigbee-herdsman-converters");
         const directory = settings.get().advanced.log_directory;
-        // console.log(mockMQTTPublishAsync.mock.calls.find((c) => c[0] === 'zigbee2mqtt/bridge/info')![1]);
+        // console.log(mockMQTTPublishAsync.mock.calls.find((c) => c[0] === "zigbee2mqtt/bridge/info")![1]);
         expect(mockMQTTPublishAsync).toHaveBeenCalledWith(
             "zigbee2mqtt/bridge/info",
             stringify({
                 commit: version.commitHash,
                 config: {
+                    health: {
+                        interval: 10,
+                        reset_on_check: false,
+                    },
                     advanced: {
                         adapter_concurrent: undefined,
                         adapter_delay: undefined,
@@ -315,14 +330,24 @@ describe("Extension: Bridge", () => {
                 version: version.version,
                 zigbee_herdsman: zhVersion,
                 zigbee_herdsman_converters: zhcVersion,
+                os: {
+                    version: "Linux - 0.0.1 - x64",
+                    node_version: "v1.2.3",
+                    cpus: "Intel Core i7-9999 (x1)",
+                    memory_mb: 10,
+                },
+                mqtt: {
+                    server: "mqtt://localhost:1883",
+                    version: 5,
+                },
             }),
             {retain: true},
         );
     });
 
-    it("onlythis Should publish devices on startup", async () => {
+    it("Should publish devices on startup", async () => {
         await resetExtension();
-        // console.log(mockMQTTPublishAsync.mock.calls.find((c) => c[0] === "zigbee2mqtt/bridge/devices")[1]);
+        // console.log(mockMQTTPublishAsync.mock.calls.find((c) => c[0] === 'zigbee2mqtt/bridge/devices')[1]);
         expect(mockMQTTPublishAsync).toHaveBeenCalledWith(
             "zigbee2mqtt/bridge/devices",
             stringify([
@@ -683,27 +708,6 @@ describe("Extension: Bridge", () => {
                                         property: "color",
                                         type: "composite",
                                     },
-                                    {
-                                        access: 7,
-                                        description: "Configure genLevelCtrl",
-                                        features: [
-                                            {
-                                                access: 7,
-                                                description:
-                                                    'this setting can affect the "on_level", "current_level_startup" or "brightness" setting',
-                                                label: "Execute if off",
-                                                name: "execute_if_off",
-                                                property: "execute_if_off",
-                                                type: "binary",
-                                                value_off: false,
-                                                value_on: true,
-                                            },
-                                        ],
-                                        label: "Level config",
-                                        name: "level_config",
-                                        property: "level_config",
-                                        type: "composite",
-                                    },
                                 ],
                                 type: "light",
                             },
@@ -716,27 +720,6 @@ describe("Extension: Bridge", () => {
                                 property: "power_on_behavior",
                                 type: "enum",
                                 values: ["off", "on", "toggle", "previous"],
-                            },
-                            {
-                                access: 7,
-                                category: "config",
-                                description: "Advanced color behavior",
-                                features: [
-                                    {
-                                        access: 2,
-                                        description: "Controls whether color and color temperature can be set while light is off",
-                                        label: "Execute if off",
-                                        name: "execute_if_off",
-                                        property: "execute_if_off",
-                                        type: "binary",
-                                        value_off: false,
-                                        value_on: true,
-                                    },
-                                ],
-                                label: "Color options",
-                                name: "color_options",
-                                property: "color_options",
-                                type: "composite",
                             },
                             {
                                 access: 2,
@@ -3981,7 +3964,7 @@ describe("Extension: Bridge", () => {
         );
     });
 
-    it("Icon link handling", async () => {
+    it("Icon link handling", () => {
         const bridge = controller.getExtension("Bridge")! as Bridge;
         expect(bridge).toBeDefined();
 
@@ -4012,14 +3995,14 @@ describe("Extension: Bridge", () => {
         expect(payload.icon).not.toBeUndefined();
         expect(payload.icon).toBe(svg_icon);
 
-        definition.icon = "_${model}_";
+        definition.icon = "_$model_";
         // @ts-expect-error bare minimum mock
         payload = bridge.getDefinitionPayload({...device, zh: device, definition, exposes: () => definition.exposes, options: {}});
         assert(payload);
         expect(payload.icon).not.toBeUndefined();
         expect(payload.icon).toBe("_lumi.plug_");
 
-        definition.icon = "_${model}_${zigbeeModel}_";
+        definition.icon = "_$model_$zigbeeModel_";
         // @ts-expect-error bare minimum mock
         payload = bridge.getDefinitionPayload({...device, zh: device, definition, exposes: () => definition.exposes, options: {}});
         assert(payload);
@@ -4035,7 +4018,7 @@ describe("Extension: Bridge", () => {
 
         device.modelID = "?._Z\\NC+Z02*LM";
         definition.model = "&&&&*+";
-        definition.icon = "_${model}_${zigbeeModel}_";
+        definition.icon = "_$model_$zigbeeModel_";
         // @ts-expect-error bare minimum mock
         payload = bridge.getDefinitionPayload({...device, zh: device, definition, exposes: () => definition.exposes, options: {}});
         assert(payload);
